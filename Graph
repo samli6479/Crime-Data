@@ -1,0 +1,55 @@
+library("curl")
+library("RJSONIO")
+library('dplyr')
+library('rpart')
+library('lubridate')
+library('ggplot2')
+
+Raw_input<-fromJSON("crime.json")
+
+Crime<-Raw_input[['data']]
+
+col_data<-Raw_input[['meta']][['view']][['columns']]
+### Getting the data for columns
+
+Crime_data<-data.frame(sapply(9:(length(col_data)-1), Grab_1), stringsAsFactors=FALSE)
+### Apply the Grab function to 9:29 columns which is the useful data, then return the entire data
+### as a data.frame 
+
+colnames(Crime_data)<-sapply(9:29, function(x) col_data[[x]]$name)
+### Getting the correct column names
+
+class_type<-sapply(1:ncol(Crime_data),function(x) class(Crime_data[,x]))
+
+Crime_data<-Data_Conversion(Crime_data)
+
+Sub_data_1<-as.data.frame(hour(Crime_data[,3]))
+
+colnames(Sub_data_1)<-c("Hour")
+
+Graph_1_data<-as.data.frame(count(Sub_data_1,Hour))
+
+colnames(Graph_1_data)<-c("Hour","Frequency")
+
+Sub_data_2<-as.data.frame(Crime_data[,12])
+
+colnames(Sub_data_2)<-c("District")
+
+Graph_2_data<-as.data.frame(count(Sub_data_2,District))
+
+colnames(Graph_2_data)<-c("District","Frequency")
+
+###Sub_data_3<-as.data.frame(bind_cols(Crime_data[,16],Crime_data[,17]))
+
+###colnames(Sub_data_3)<-c("X","Y")
+
+###Distance<-as.data.frame(sapply(1:273929,function(x) 
+### sqrt(sum(Sub_data_3[x,1]^2,Sub_data_3[x,2]^2))))
+
+Graph_1<-ggplot(Graph_1_data,aes(Hour,Frequency))+geom_bar(stat="identity",aes(fill=Frequency))+
+  scale_fill_gradient2(low="blue",high="red",mid = "maroon",midpoint = 10000)+
+  scale_x_discrete(limits=0:23)+expand_limits(x=c(-2,24))
+
+Graph_2<-ggplot(Graph_2_data,aes(District,Frequency))+geom_bar(stat="identity",aes(fill=Frequency))+
+  scale_fill_gradient2(low="green",high="red",mid = "yellow",midpoint = 12500)+
+  scale_x_discrete(limits=1:25)+expand_limits(x=c(0,26))+coord_flip()
